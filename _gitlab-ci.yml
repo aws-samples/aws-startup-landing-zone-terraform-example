@@ -1,0 +1,127 @@
+image:
+  name: hashicorp/terraform:light
+  entrypoint:
+    - "/usr/bin/env"
+    - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+variables:
+  TF_LOG: $TF_LOG
+
+stages:
+  - format
+  - validate
+  - plan
+  - apply
+  - destroy
+
+format:
+  stage: format
+  script:
+    - terraform fmt -check -recursive
+
+# validate_staging:
+#  variables:
+#   TF_ROOT: $CI_PROJECT_DIR/environments/staging
+# stage: validate
+# script:
+#   - cd $TF_ROOT
+#   - terraform init
+#   - terraform validate
+# dependencies:
+#   - format
+
+validate_dev:
+  variables:
+    TF_ROOT: $CI_PROJECT_DIR/environments/development
+  stage: validate
+  script:
+    - cd $TF_ROOT
+    - terraform init
+    - terraform validate
+  dependencies:
+    - format
+
+# plan_staging:
+#   variables:
+#     TF_ROOT: $CI_PROJECT_DIR/environments/staging
+#   stage: plan
+#   script:
+#     - cd $TF_ROOT
+#     - terraform init
+#     - terraform plan -out plan_staging.json
+#   artifacts:
+#     name: plan_staging
+#     paths:
+#       - $TF_ROOT/plan_staging.json
+#   dependencies:
+#     - validate_staging
+
+plan_dev:
+  variables:
+    TF_ROOT: $CI_PROJECT_DIR/environments/development
+  stage: plan
+  script:
+    - cd $TF_ROOT
+    - terraform init
+    - terraform plan -out plan_dev.json
+  artifacts:
+    name: plan_dev
+    paths:
+      - $TF_ROOT/plan_dev.json
+  dependencies:
+    - validate_dev
+
+# apply_staging:
+#   variables:
+#     TF_ROOT: $CI_PROJECT_DIR/environments/staging
+#   stage: apply
+#   script:
+#     - cd $TF_ROOT
+#     - terraform init
+#     - terraform apply -auto-approve plan_staging.json
+#   dependencies:
+#     - plan_staging
+#   when: manual
+#   only:
+#     - main
+
+apply_dev:
+  variables:
+    TF_ROOT: $CI_PROJECT_DIR/environments/development
+  stage: apply
+  script:
+    - cd $TF_ROOT
+    - terraform init
+    - terraform apply -auto-approve plan_dev.json
+  dependencies:
+    - plan_dev
+  when: manual
+  only:
+    - main
+
+# destroy_staging:
+#   variables:
+#     TF_ROOT: $CI_PROJECT_DIR/environments/staging
+#   stage: apply
+#   script:
+#     - cd $TF_ROOT
+#     - terraform init
+#     - terraform destroy -auto-approve
+#   dependencies:
+#     - plan_staging
+#   when: manual
+#   only:
+#     - main
+destroy_dev:
+  variables:
+    TF_ROOT: $CI_PROJECT_DIR/environments/development
+  stage: apply
+  script:
+    - cd $TF_ROOT
+    - terraform init
+    - terraform destroy -auto-approve
+  dependencies:
+    - plan_dev
+  when: manual
+  only:
+    - main
